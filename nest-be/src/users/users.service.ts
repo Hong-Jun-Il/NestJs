@@ -1,4 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class UsersService {
@@ -37,7 +40,12 @@ export class UsersService {
 
   findAll(role?: 'INTERN' | 'ENGINEER' | 'ADMIN') {
     if (role) {
-      return this.users.filter((user) => user.role === role);
+      const rolesArray = this.users.filter((user) => user.role === role);
+
+      if (!rolesArray.length)
+        throw new NotFoundException('User Role Not Found');
+
+      return rolesArray;
     }
 
     return this.users;
@@ -46,22 +54,18 @@ export class UsersService {
   findOne(id: number) {
     const user = this.users.find((user) => user.id === id);
 
+    if (!user) throw new NotFoundException('User Not Found');
+
     return user;
   }
 
-  create(user: {
-    name: string;
-    email: string;
-    role: 'INTERN' | 'ENGINEER' | 'ADMIN';
-  }) {
+  create(CreateUserDto: CreateUserDto) {
     const usersByHighestId =
       [...this.users].sort((a, b) => b.id - a.id)[0].id + 1;
 
     const newUser = {
       id: usersByHighestId,
-      name: user.name,
-      email: user.email,
-      role: user.role,
+      ...CreateUserDto,
     };
 
     this.users.push(newUser);
@@ -69,24 +73,17 @@ export class UsersService {
     return newUser;
   }
 
-  update(
-    id: number,
-    updatedUser: {
-      name?: string;
-      email?: string;
-      role?: 'INTERN' | 'ENGINEER' | 'ADMIN';
-    },
-  ) {
-    const targetIndex = this.users.findIndex(user=>user.id === id);
-    this.users[targetIndex] = {...this.users[targetIndex], ...updatedUser};
+  update(id: number, updateUserDto: UpdateUserDto) {
+    const targetIndex = this.users.findIndex((user) => user.id === id);
+    this.users[targetIndex] = { ...this.users[targetIndex], ...updateUserDto };
 
     return this.findOne(id);
   }
 
-  delete(id: number){
+  delete(id: number) {
     const targetUser = this.findOne(id);
 
-    this.users = this.users.filter((user)=>user.id !== targetUser.id);
+    this.users = this.users.filter((user) => user.id !== targetUser.id);
 
     return targetUser;
   }
